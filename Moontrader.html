@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moontrader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050b16;
+            --panel: rgba(13, 20, 34, 0.88);
+            --border: rgba(148, 163, 184, 0.18);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --buy: #4ade80;
+            --sell: #fb7185;
+            --neutral: #facc15;
+            --blue: #93c5fd;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Inter", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top, rgba(96, 165, 250, 0.16), transparent 26%),
+                linear-gradient(180deg, #030814 0%, #071120 100%);
+        }
+
+        .logo-font {
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .glass {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 24px 80px rgba(2, 8, 23, 0.4);
+        }
+
+        .nav-link {
+            color: #cbd5e1;
+            transition: color 160ms ease;
+        }
+
+        .nav-link.active,
+        .nav-link:hover {
+            color: white;
+        }
+
+        .signal-buy {
+            color: var(--buy);
+        }
+
+        .signal-sell {
+            color: var(--sell);
+        }
+
+        .signal-neutral {
+            color: var(--neutral);
+        }
+
+        .signal-bar {
+            height: 0.75rem;
+            border-radius: 999px;
+            background: #111827;
+            overflow: hidden;
+        }
+
+        .signal-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 180ms ease, background 180ms ease;
+        }
+
+        .chart-wrap {
+            position: relative;
+            min-height: 24rem;
+        }
+
+        @media (max-width: 768px) {
+            .chart-wrap {
+                min-height: 20rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header class="sticky top-0 z-50 border-b border-slate-800/80 bg-[#050b16]/90 backdrop-blur-xl">
+            <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+                <button type="button" onclick="navigateTo('home')" class="flex items-center gap-3 text-left">
+                    <span class="w-11 h-11 rounded-2xl flex items-center justify-center bg-gradient-to-br from-blue-200 to-indigo-400 text-2xl">🌙</span>
+                    <span>
+                        <span class="block logo-font text-2xl sm:text-3xl font-semibold tracking-tight text-white">Moontrader</span>
+                        <span class="block text-[11px] uppercase tracking-[0.3em] text-slate-400">Moon cycle signal</span>
+                    </span>
+                </button>
+
+                <nav class="flex items-center gap-6 text-sm font-semibold">
+                    <button type="button" class="nav-link active" data-section-link="home" onclick="navigateTo('home')">Home</button>
+                    <button type="button" class="nav-link" data-section-link="live" onclick="navigateTo('live')">Graph</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="flex-1">
+            <section id="home-section" class="py-10 sm:py-14">
+                <div class="max-w-6xl mx-auto px-5">
+                    <div class="glass rounded-[2rem] p-6 sm:p-10">
+                        <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-8 items-center">
+                            <div>
+                                <div class="text-xs uppercase tracking-[0.28em] text-slate-400">Current lunar read</div>
+                                <h1 class="logo-font text-4xl sm:text-6xl font-bold tracking-[-0.04em] text-white mt-3">Buy or sell, based on the moon.</h1>
+                                <div class="mt-8 flex items-center gap-4">
+                                    <div id="home-moon-emoji" class="text-6xl sm:text-7xl">🌔</div>
+                                    <div>
+                                        <div id="home-phase-name" class="text-2xl sm:text-3xl font-semibold text-white">Waxing Gibbous</div>
+                                        <div id="home-phase-meta" class="text-slate-400 mt-1">72% illumination</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-[1.75rem] p-6 sm:p-7">
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400">Signal now</div>
+                                <div id="home-signal-label" class="mt-3 text-4xl sm:text-5xl font-extrabold signal-buy">BUY TODAY</div>
+                                <div id="home-signal-summary" class="mt-3 text-base sm:text-lg text-slate-300">Moon phase and declination favor accumulation.</div>
+                                <div id="home-signal-score" class="mt-5 text-3xl font-bold text-white">74 / 100</div>
+                                <div class="signal-bar mt-5">
+                                    <div id="home-signal-fill" class="signal-fill bg-emerald-400" style="width:74%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="live-section" class="hidden py-10 sm:py-14">
+                <div class="max-w-6xl mx-auto px-5">
+                    <div class="glass rounded-[2rem] p-6 sm:p-8">
+                        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                            <div>
+                                <div class="text-xs uppercase tracking-[0.28em] text-slate-400">Live app</div>
+                                <h2 class="logo-font text-3xl sm:text-5xl font-bold tracking-[-0.04em] text-white mt-3">Last 30 days: moon phase + buy/sell signal</h2>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-4">
+                                <label class="flex items-center gap-3 text-sm">
+                                    <span class="text-slate-400 uppercase tracking-[0.2em] text-[11px]">Date</span>
+                                    <input id="date-picker" type="date" class="rounded-2xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-blue-400" onchange="updateAll()">
+                                </label>
+                                <label class="flex items-center gap-3 text-sm">
+                                    <span class="text-slate-400 uppercase tracking-[0.2em] text-[11px]">Timezone</span>
+                                    <select id="tz-select" class="rounded-2xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-blue-400" onchange="updateAll()">
+                                        <option value="-8" selected>PST</option>
+                                        <option value="-5">EST</option>
+                                        <option value="0">UTC</option>
+                                        <option value="1">CET</option>
+                                    </select>
+                                </label>
+                                <label class="flex items-center gap-3 text-sm">
+                                    <span class="text-slate-400 uppercase tracking-[0.2em] text-[11px]">Graph</span>
+                                    <select id="range-select" class="rounded-2xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-blue-400" onchange="updateAll()">
+                                        <option value="year">Year</option>
+                                        <option value="month" selected>Month</option>
+                                        <option value="week">Week</option>
+                                        <option value="day">Day</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid lg:grid-cols-[0.95fr_1.05fr] gap-6 mt-8">
+                            <div class="glass rounded-[1.75rem] p-6 sm:p-7">
+                                <div class="flex items-center gap-4">
+                                    <div id="live-moon-emoji" class="text-6xl">🌔</div>
+                                    <div>
+                                        <div id="live-phase-name" class="text-2xl font-semibold text-white">Waxing Gibbous</div>
+                                        <div id="live-phase-meta" class="text-slate-400 mt-1">72% illumination • 11.2 days old</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-8 text-[11px] uppercase tracking-[0.24em] text-slate-400">What to do now</div>
+                                <div id="live-signal-label" class="mt-3 text-5xl font-extrabold signal-buy">BUY TODAY</div>
+                                <div id="live-signal-summary" class="mt-3 text-lg text-slate-300">Moon phase and declination favor accumulation.</div>
+
+                                <div class="mt-6 grid grid-cols-2 gap-4">
+                                    <div class="rounded-[1.25rem] border border-slate-700 bg-slate-950/60 p-4">
+                                        <div class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Score</div>
+                                        <div id="live-signal-score" class="mt-2 text-3xl font-bold text-white">74 / 100</div>
+                                    </div>
+                                    <div class="rounded-[1.25rem] border border-slate-700 bg-slate-950/60 p-4">
+                                        <div class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Moon phase</div>
+                                        <div id="live-signal-phase" class="mt-2 text-xl font-semibold text-white">Waxing Gibbous</div>
+                                    </div>
+                                </div>
+
+                                <div class="signal-bar mt-6">
+                                    <div id="live-signal-fill" class="signal-fill bg-emerald-400" style="width:74%"></div>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-[1.75rem] p-4 sm:p-5">
+                                <div class="chart-wrap">
+                                    <canvas id="main-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="py-8">
+            <div class="max-w-6xl mx-auto px-5 text-center text-sm text-slate-400">
+                Vibecoded by Robert James Cross
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const SYNODIC_MONTH = 29.53058867;
+        const KNOWN_NEW_MOON_UTC = Date.UTC(2000, 0, 6, 18, 14, 0);
+        const JD_J2000 = 2451545.0;
+        const PHASES = [
+            { limit: 1.84566, name: "New Moon", emoji: "🌑" },
+            { limit: 5.53699, name: "Waxing Crescent", emoji: "🌒" },
+            { limit: 9.22831, name: "First Quarter", emoji: "🌓" },
+            { limit: 12.91963, name: "Waxing Gibbous", emoji: "🌔" },
+            { limit: 16.61096, name: "Full Moon", emoji: "🌕" },
+            { limit: 20.30228, name: "Waning Gibbous", emoji: "🌖" },
+            { limit: 23.99361, name: "Last Quarter", emoji: "🌗" },
+            { limit: 27.68493, name: "Waning Crescent", emoji: "🌘" }
+        ];
+        const PLANETARY_ELEMENTS = {
+            Mercury: { a0: 0.38709843, a1: 0.0, e0: 0.20563661, e1: 0.00002123, I0: 7.00559432, I1: -0.00590158, L0: 252.25166724, L1: 149472.67486623, p0: 77.45771895, p1: 0.15940013, n0: 48.33961819, n1: -0.12214182, b: 0, c: 0, s: 0, f: 0 },
+            Venus: { a0: 0.72332102, a1: -0.00000026, e0: 0.00676399, e1: -0.00005107, I0: 3.39777545, I1: 0.00043494, L0: 181.9797085, L1: 58517.8156026, p0: 131.76755713, p1: 0.05679648, n0: 76.67261496, n1: -0.27274174, b: 0, c: 0, s: 0, f: 0 },
+            Earth: { a0: 1.00000018, a1: -0.00000003, e0: 0.01673163, e1: -0.00003661, I0: -0.00054346, I1: -0.01337178, L0: 100.46691572, L1: 35999.37306329, p0: 102.93005885, p1: 0.3179526, n0: -5.11260389, n1: -0.24123856, b: 0, c: 0, s: 0, f: 0 },
+            Mars: { a0: 1.52371243, a1: 0.00000097, e0: 0.09336511, e1: 0.00009149, I0: 1.85181869, I1: -0.00724757, L0: -4.56813164, L1: 19140.29934243, p0: -23.91744784, p1: 0.45223625, n0: 49.71320984, n1: -0.26852431, b: 0, c: 0, s: 0, f: 0 },
+            Jupiter: { a0: 5.20248019, a1: -0.00002864, e0: 0.0485359, e1: 0.00018026, I0: 1.29861416, I1: -0.00322699, L0: 34.33479152, L1: 3034.90371757, p0: 14.27495244, p1: 0.18199196, n0: 100.29282654, n1: 0.13024619, b: -0.00012452, c: 0.0606406, s: -0.35635438, f: 38.35125 },
+            Saturn: { a0: 9.54149883, a1: -0.00003065, e0: 0.05550825, e1: -0.00032044, I0: 2.49424102, I1: 0.00451969, L0: 50.07571329, L1: 1222.11494724, p0: 92.86136063, p1: 0.54179478, n0: 113.63998702, n1: -0.25015002, b: 0.00025899, c: -0.13434469, s: 0.87320147, f: 38.35125 },
+            Uranus: { a0: 19.18797948, a1: -0.00020455, e0: 0.0468574, e1: -0.0000155, I0: 0.77298127, I1: -0.00180155, L0: 314.20276625, L1: 428.49512595, p0: 172.43404441, p1: 0.09266985, n0: 73.96250215, n1: 0.05739699, b: 0.00058331, c: -0.97731848, s: 0.17689245, f: 7.67025 },
+            Neptune: { a0: 30.06952752, a1: 0.00006447, e0: 0.00895439, e1: 0.00000818, I0: 1.7700552, I1: 0.000224, L0: 304.22289287, L1: 218.46515314, p0: 46.68158724, p1: 0.01009938, n0: 131.78635853, n1: -0.00606302, b: -0.00041348, c: 0.68346318, s: -0.10162547, f: 7.67025 },
+            Pluto: { a0: 39.48211675, a1: 0, e0: 0.2488273, e1: 0, I0: 17.14001206, I1: 0, L0: 238.92881, L1: 145.2078, p0: 224.06891629, p1: 0, n0: 110.30393684, n1: 0, b: 0, c: 0, s: 0, f: 0 }
+        };
+        const PLANET_ORDER = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];
+        const ZODIAC_SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+        const ALGO_WEIGHTS = {
+            phaseBias: {
+                "New Moon": 18,
+                "Waxing Crescent": 24,
+                "First Quarter": 30,
+                "Waxing Gibbous": 16,
+                "Full Moon": -28,
+                "Waning Gibbous": -18,
+                "Last Quarter": -24,
+                "Waning Crescent": -16
+            },
+            declinationPositive: 4,
+            declinationNegative: -4,
+            latitudePositive: 2,
+            latitudeNegative: -2,
+            ingressWindow: -12,
+            multiRetrogradePressure: -6,
+            retrograde: {
+                Mercury: -8,
+                Venus: -5,
+                Mars: -10,
+                Jupiter: -4,
+                Saturn: -6,
+                Uranus: -5,
+                Neptune: -3,
+                Pluto: -3
+            },
+            moonAspect: {
+                JupiterPositive: 7,
+                VenusPositive: 5,
+                HardMalefic: -8,
+                MercuryRetrogradeHard: -6
+            }
+        };
+
+        let mainChart = null;
+
+        function pad(number) {
+            return String(number).padStart(2, "0");
+        }
+
+        function formatInputDate(date) {
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        }
+
+        function formatOffsetLabel(offsetHours) {
+            if (offsetHours === 0) return "UTC";
+            return `UTC${offsetHours >= 0 ? "+" : ""}${offsetHours}`;
+        }
+
+        function toRadians(value) {
+            return value * Math.PI / 180;
+        }
+
+        function toDegrees(value) {
+            return value * 180 / Math.PI;
+        }
+
+        function normalizeAngle(value) {
+            return ((value % 360) + 360) % 360;
+        }
+
+        function shortestAngleDifference(a, b) {
+            const diff = normalizeAngle(a - b + 180) - 180;
+            return diff < -180 ? diff + 360 : diff;
+        }
+
+        function julianDate(date) {
+            return date.getTime() / 86400000 + 2440587.5;
+        }
+
+        function julianCenturies(date) {
+            return (julianDate(date) - JD_J2000) / 36525;
+        }
+
+        function parseSelectedDate() {
+            const input = document.getElementById("date-picker");
+            if (!input || !input.value) return new Date();
+            const parsed = new Date(`${input.value}T12:00:00`);
+            return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+
+        function getTimezoneOffsetHours() {
+            return Number(document.getElementById("tz-select").value || 0);
+        }
+
+        function getSelectedRange() {
+            return document.getElementById("range-select").value || "year";
+        }
+
+        function getRangeConfig(range) {
+            const configs = {
+                year: { points: 12, stepMs: 30 * 86400000, title: "Last 12 months", labelFormatter: { month: "short", year: "2-digit" } },
+                month: { points: 30, stepMs: 86400000, title: "Last 30 days", labelFormatter: { month: "short", day: "numeric" } },
+                week: { points: 7, stepMs: 86400000, title: "Last 7 days", labelFormatter: { weekday: "short" } },
+                day: { points: 24, stepMs: 3600000, title: "Last 24 hours", labelFormatter: { hour: "numeric" } }
+            };
+            return configs[range] || configs.month;
+        }
+
+        function getSelectedAnchorDate() {
+            const input = document.getElementById("date-picker");
+            const tzOffsetHours = getTimezoneOffsetHours();
+            if (!input || !input.value) return new Date();
+            const [year, month, day] = input.value.split("-").map(Number);
+            if (!year || !month || !day) return new Date();
+            const utcMillis = Date.UTC(year, month - 1, day, 23 - tzOffsetHours, 59, 59, 900);
+            return new Date(utcMillis);
+        }
+
+        function formatInTimezone(date, tzOffsetHours, formatterOptions) {
+            const shifted = new Date(date.getTime() + tzOffsetHours * 3600000);
+            return shifted.toLocaleString("en-US", formatterOptions);
+        }
+
+        function solveKeplerDegrees(Mdeg, e) {
+            let E = Mdeg + (180 / Math.PI) * e * Math.sin(toRadians(Mdeg));
+            for (let i = 0; i < 8; i += 1) {
+                const deltaM = Mdeg - (E - (180 / Math.PI) * e * Math.sin(toRadians(E)));
+                const deltaE = deltaM / (1 - e * Math.cos(toRadians(E)));
+                E += deltaE;
+                if (Math.abs(deltaE) < 1e-6) break;
+            }
+            return E;
+        }
+
+        function heliocentricPosition(name, date) {
+            const elements = PLANETARY_ELEMENTS[name];
+            const T = julianCenturies(date);
+            const a = elements.a0 + elements.a1 * T;
+            const e = elements.e0 + elements.e1 * T;
+            const I = elements.I0 + elements.I1 * T;
+            const L = elements.L0 + elements.L1 * T;
+            const peri = elements.p0 + elements.p1 * T;
+            const node = elements.n0 + elements.n1 * T;
+            const omega = peri - node;
+            const correction = elements.b * T * T + elements.c * Math.cos(toRadians(elements.f * T)) + elements.s * Math.sin(toRadians(elements.f * T));
+            let M = normalizeAngle(L - peri + correction);
+            if (M > 180) M -= 360;
+            const E = solveKeplerDegrees(M, e);
+            const xPrime = a * (Math.cos(toRadians(E)) - e);
+            const yPrime = a * Math.sqrt(1 - e * e) * Math.sin(toRadians(E));
+
+            const cosOmega = Math.cos(toRadians(omega));
+            const sinOmega = Math.sin(toRadians(omega));
+            const cosNode = Math.cos(toRadians(node));
+            const sinNode = Math.sin(toRadians(node));
+            const cosI = Math.cos(toRadians(I));
+            const sinI = Math.sin(toRadians(I));
+
+            const x = (cosOmega * cosNode - sinOmega * sinNode * cosI) * xPrime + (-sinOmega * cosNode - cosOmega * sinNode * cosI) * yPrime;
+            const y = (cosOmega * sinNode + sinOmega * cosNode * cosI) * xPrime + (-sinOmega * sinNode + cosOmega * cosNode * cosI) * yPrime;
+            const z = (sinOmega * sinI) * xPrime + (cosOmega * sinI) * yPrime;
+            const longitude = normalizeAngle(toDegrees(Math.atan2(y, x)));
+
+            return { x, y, z, longitude };
+        }
+
+        function geocentricPlanetState(name, date) {
+            const earth = heliocentricPosition("Earth", date);
+            const body = heliocentricPosition(name, date);
+            const x = body.x - earth.x;
+            const y = body.y - earth.y;
+            const longitude = normalizeAngle(toDegrees(Math.atan2(y, x)));
+            const previousDate = new Date(date.getTime() - 86400000);
+            const earthPrev = heliocentricPosition("Earth", previousDate);
+            const bodyPrev = heliocentricPosition(name, previousDate);
+            const prevLongitude = normalizeAngle(toDegrees(Math.atan2(bodyPrev.y - earthPrev.y, bodyPrev.x - earthPrev.x)));
+            const delta = shortestAngleDifference(longitude, prevLongitude);
+
+            return {
+                longitude,
+                sign: ZODIAC_SIGNS[Math.floor(longitude / 30)],
+                retrograde: delta < 0,
+                velocity: delta
+            };
+        }
+
+        function approximateMoonLongitude(date) {
+            const daysSinceJ2000 = julianDate(date) - JD_J2000;
+            return normalizeAngle(218.316 + 13.176396 * daysSinceJ2000);
+        }
+
+        function getMoonMarketAspects(moonLongitude, planetaryStates) {
+            const aspects = [];
+            const aspectDefs = [
+                { angle: 0, orb: 6, label: "conjunct" },
+                { angle: 90, orb: 5, label: "square" },
+                { angle: 120, orb: 5, label: "trine" },
+                { angle: 180, orb: 6, label: "opposite" }
+            ];
+
+            PLANET_ORDER.forEach((planet) => {
+                const state = planetaryStates[planet];
+                aspectDefs.forEach((aspect) => {
+                    const separation = Math.abs(Math.abs(shortestAngleDifference(moonLongitude, state.longitude)));
+                    const distanceFromAspect = Math.abs(separation - aspect.angle);
+                    if (distanceFromAspect <= aspect.orb) {
+                        aspects.push({
+                            planet,
+                            type: aspect.label,
+                            orb: Number(distanceFromAspect.toFixed(1)),
+                            retrograde: state.retrograde
+                        });
+                    }
+                });
+            });
+
+            return aspects.sort((a, b) => a.orb - b.orb).slice(0, 6);
+        }
+
+        function moonPhase(date, tzOffsetHours = 0) {
+            const adjustedTime = date.getTime() + tzOffsetHours * 60 * 60 * 1000;
+            const daysSinceKnownNewMoon = (adjustedTime - KNOWN_NEW_MOON_UTC) / 86400000;
+            const cycleAge = ((daysSinceKnownNewMoon % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
+            const illumination = Math.round((1 - Math.cos((cycleAge / SYNODIC_MONTH) * Math.PI * 2)) * 50);
+            const phaseData = PHASES.find((phase) => cycleAge < phase.limit) || PHASES[0];
+            return {
+                age: Number(cycleAge.toFixed(1)),
+                illumination,
+                phaseName: phaseData.name,
+                emoji: phaseData.emoji
+            };
+        }
+
+        function getDeclination(date) {
+            const startOfYear = new Date(date.getFullYear(), 0, 0);
+            const dayOfYear = Math.floor((date - startOfYear) / 86400000);
+            return Number((23.44 * Math.sin(((360 / 365) * (dayOfYear - 81) * Math.PI) / 180)).toFixed(1));
+        }
+
+        function getLatitudeCycle(date) {
+            const dayIndex = Math.floor(date.getTime() / 86400000);
+            return Number((5.2 * Math.sin(dayIndex / 4.5)).toFixed(1));
+        }
+
+        function getCardinalIngressContext(date) {
+            const year = date.getFullYear();
+            const ingressDates = [
+                { date: new Date(year, 2, 20), name: "Aries ingress" },
+                { date: new Date(year, 5, 21), name: "Cancer ingress" },
+                { date: new Date(year, 8, 22), name: "Libra ingress" },
+                { date: new Date(year, 11, 21), name: "Capricorn ingress" }
+            ];
+
+            let closest = null;
+            let smallestDistance = Number.POSITIVE_INFINITY;
+
+            ingressDates.forEach((ingress) => {
+                const distance = Math.abs(Math.round((date - ingress.date) / 86400000));
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closest = ingress;
+                }
+            });
+
+            if (smallestDistance <= 3) {
+                return {
+                    active: true,
+                    daysAway: smallestDistance,
+                    name: closest.name,
+                    confidenceDelta: -12,
+                    note: `${closest.name} turning-point window`
+                };
+            }
+
+            return {
+                active: false,
+                daysAway: smallestDistance,
+                name: closest ? closest.name : "",
+                confidenceDelta: 0,
+                note: "no cardinal-ingress pressure"
+            };
+        }
+
+        function evaluateSignal(date, tzOffsetHours = 0) {
+            const moon = moonPhase(date, tzOffsetHours);
+            const decl = getDeclination(date);
+            const lat = getLatitudeCycle(date);
+            const ingress = getCardinalIngressContext(date);
+            const moonLongitude = approximateMoonLongitude(date);
+            const planetaryStates = Object.fromEntries(PLANET_ORDER.map((planet) => [planet, geocentricPlanetState(planet, date)]));
+            const moonAspects = getMoonMarketAspects(moonLongitude, planetaryStates);
+            const retrogradePlanets = PLANET_ORDER.filter((planet) => planetaryStates[planet].retrograde);
+
+            const phaseSignals = {
+                "New Moon": {
+                    action: "BUY TODAY",
+                    tone: "buy",
+                    score: 68,
+                    summary: "New Moon suggests a potential trend beginning."
+                },
+                "Waxing Crescent": {
+                    action: "BUY TODAY",
+                    tone: "buy",
+                    score: 74,
+                    summary: "Waxing phase favors a long bias into the move up to Full Moon."
+                },
+                "First Quarter": {
+                    action: "BUY TODAY",
+                    tone: "buy",
+                    score: 80,
+                    summary: "First Quarter is where LuxAlgo says momentum often builds."
+                },
+                "Waxing Gibbous": {
+                    action: "BUY TODAY",
+                    tone: "buy",
+                    score: 67,
+                    summary: "Trend is still in the waxing half, but the move is getting more extended."
+                },
+                "Full Moon": {
+                    action: "SELL TODAY",
+                    tone: "sell",
+                    score: 78,
+                    summary: "Full Moon is associated with higher volatility and possible reversals."
+                },
+                "Waning Gibbous": {
+                    action: "SELL TODAY",
+                    tone: "sell",
+                    score: 70,
+                    summary: "Waning phase shifts the bias away from longs and toward reduction."
+                },
+                "Last Quarter": {
+                    action: "SELL TODAY",
+                    tone: "sell",
+                    score: 76,
+                    summary: "Last Quarter is linked to consolidation and trend weakening."
+                },
+                "Waning Crescent": {
+                    action: "SELL TODAY",
+                    tone: "sell",
+                    score: 64,
+                    summary: "Late waning cycle keeps a cautious, defensive bias before the next reset."
+                }
+            };
+
+            const baseSignal = phaseSignals[moon.phaseName] || {
+                action: "WAIT",
+                tone: "neutral",
+                score: 50,
+                summary: "Signal is mixed. Wait for a cleaner setup."
+            };
+
+            let marketScore = 50;
+            const drivers = [];
+            const factorBreakdown = [];
+
+            const addFactor = (value, label) => {
+                marketScore += value;
+                factorBreakdown.push({ label, value });
+                if (value !== 0) drivers.push(label);
+            };
+
+            addFactor(ALGO_WEIGHTS.phaseBias[moon.phaseName] || 0, `${moon.phaseName} phase bias`);
+            addFactor(decl > 0 ? ALGO_WEIGHTS.declinationPositive : ALGO_WEIGHTS.declinationNegative, decl > 0 ? "positive declination" : "negative declination");
+            addFactor(lat > 0 ? ALGO_WEIGHTS.latitudePositive : ALGO_WEIGHTS.latitudeNegative, lat > 0 ? "positive lunar latitude" : "negative lunar latitude");
+
+            if (ingress.active) {
+                addFactor(ALGO_WEIGHTS.ingressWindow, ingress.note);
+            }
+
+            retrogradePlanets.forEach((planet) => {
+                addFactor(ALGO_WEIGHTS.retrograde[planet] || 0, `${planet} retrograde`);
+            });
+
+            if (retrogradePlanets.length >= 4) {
+                addFactor(ALGO_WEIGHTS.multiRetrogradePressure, "multi-retrograde pressure");
+            }
+
+            moonAspects.forEach((aspect) => {
+                if (aspect.planet === "Jupiter" && (aspect.type === "trine" || aspect.type === "conjunct")) {
+                    addFactor(ALGO_WEIGHTS.moonAspect.JupiterPositive, `Moon ${aspect.type} Jupiter`);
+                }
+                if (aspect.planet === "Venus" && (aspect.type === "trine" || aspect.type === "conjunct")) {
+                    addFactor(ALGO_WEIGHTS.moonAspect.VenusPositive, `Moon ${aspect.type} Venus`);
+                }
+                if ((aspect.planet === "Saturn" || aspect.planet === "Mars" || aspect.planet === "Uranus") && (aspect.type === "square" || aspect.type === "opposite")) {
+                    addFactor(ALGO_WEIGHTS.moonAspect.HardMalefic, `Moon ${aspect.type} ${aspect.planet}`);
+                }
+                if (aspect.planet === "Mercury" && aspect.retrograde && (aspect.type === "conjunct" || aspect.type === "square" || aspect.type === "opposite")) {
+                    addFactor(ALGO_WEIGHTS.moonAspect.MercuryRetrogradeHard, `Moon ${aspect.type} Mercury retrograde`);
+                }
+            });
+
+            marketScore = Math.max(12, Math.min(88, Math.round(marketScore)));
+            let action = "WAIT";
+            let tone = "neutral";
+            let displayScore = 50;
+
+            if (marketScore >= 60) {
+                action = "BUY TODAY";
+                tone = "buy";
+                displayScore = marketScore;
+            } else if (marketScore <= 40) {
+                action = "SELL TODAY";
+                tone = "sell";
+                displayScore = 100 - marketScore;
+            }
+
+            if (ingress.active && marketScore > 40 && marketScore < 64) {
+                action = "WAIT";
+                tone = "neutral";
+                displayScore = 55;
+                drivers.push("turning-point filter");
+            }
+
+            const headline = action === "BUY TODAY"
+                ? "Bullish lunar and astrological alignment."
+                : action === "SELL TODAY"
+                    ? "Defensive lunar and astrological alignment."
+                    : "Mixed astro picture. Better to wait.";
+
+            const summary = `${headline} Drivers: ${drivers.slice(0, 4).join(", ") || "phase structure only"}.`;
+            return {
+                action,
+                tone,
+                score: displayScore,
+                summary,
+                diagnostics: {
+                    marketScore,
+                    factorBreakdown,
+                    moonLongitude,
+                    retrogradePlanets,
+                    moonAspects,
+                    ingress,
+                    planetaryStates
+                }
+            };
+        }
+
+        function generateTimeSeries(endDate, range, tzOffsetHours = 0) {
+            const config = getRangeConfig(range);
+            const data = [];
+            for (let i = config.points - 1; i >= 0; i -= 1) {
+                const date = new Date(endDate.getTime());
+                date.setTime(endDate.getTime() - i * config.stepMs);
+                const moon = moonPhase(date, tzOffsetHours);
+                const signal = evaluateSignal(date, tzOffsetHours);
+                data.push({
+                    date,
+                    moon,
+                    signal
+                });
+            }
+            return data;
+        }
+
+        function updateSectionNav(section) {
+            document.querySelectorAll("[data-section-link]").forEach((link) => {
+                link.classList.toggle("active", link.getAttribute("data-section-link") === section);
+            });
+        }
+
+        function navigateTo(section) {
+            document.getElementById("home-section").classList.toggle("hidden", section !== "home");
+            document.getElementById("live-section").classList.toggle("hidden", section !== "live");
+            updateSectionNav(section);
+            if (section === "live") updateAll();
+        }
+
+        function applySignalToBlock(prefix, moon, signal) {
+            document.getElementById(`${prefix}-moon-emoji`).textContent = moon.emoji;
+            document.getElementById(`${prefix}-phase-name`).textContent = moon.phaseName;
+
+            const meta = prefix === "home"
+                ? `${moon.illumination}% illumination`
+                : `${moon.illumination}% illumination • ${moon.age} days old`;
+            document.getElementById(`${prefix}-phase-meta`).textContent = meta;
+
+            const label = document.getElementById(`${prefix}-signal-label`);
+            const fill = document.getElementById(`${prefix}-signal-fill`);
+            label.textContent = signal.action;
+            document.getElementById(`${prefix}-signal-summary`).textContent = signal.summary;
+            document.getElementById(`${prefix}-signal-score`).textContent = `${signal.score} / 100`;
+            fill.style.width = `${signal.score}%`;
+
+            label.className = "mt-3 text-4xl sm:text-5xl font-extrabold";
+            if (prefix === "live") {
+                label.className = "mt-3 text-5xl font-extrabold";
+            }
+
+            if (signal.tone === "buy") {
+                label.classList.add("signal-buy");
+                fill.className = "signal-fill bg-emerald-400";
+            } else if (signal.tone === "sell") {
+                label.classList.add("signal-sell");
+                fill.className = "signal-fill bg-rose-400";
+            } else {
+                label.classList.add("signal-neutral");
+                fill.className = "signal-fill bg-amber-300";
+            }
+        }
+
+        function createMainChart(series, range, tzOffsetHours) {
+            const canvas = document.getElementById("main-chart");
+            if (mainChart) mainChart.destroy();
+            const config = getRangeConfig(range);
+
+            mainChart = new Chart(canvas, {
+                data: {
+                    labels: series.map((entry) => formatInTimezone(entry.date, tzOffsetHours, config.labelFormatter)),
+                    datasets: [
+                        {
+                            type: "bar",
+                            label: "Buy / Sell Signal",
+                            data: series.map((entry) => {
+                                if (entry.signal.tone === "buy") return entry.signal.score;
+                                if (entry.signal.tone === "sell") return -entry.signal.score;
+                                return 0;
+                            }),
+                            backgroundColor: series.map((entry) => {
+                                if (entry.signal.tone === "buy") return "rgba(74, 222, 128, 0.75)";
+                                if (entry.signal.tone === "sell") return "rgba(251, 113, 133, 0.75)";
+                                return "rgba(250, 204, 21, 0.7)";
+                            }),
+                            borderRadius: 999,
+                            yAxisID: "signal"
+                        },
+                        {
+                            type: "line",
+                            label: "Moon Illumination",
+                            data: series.map((entry) => entry.moon.illumination),
+                            borderColor: "#93c5fd",
+                            backgroundColor: "rgba(147,197,253,0.15)",
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.28,
+                            yAxisID: "illumination"
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: "#cbd5e1"
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: "rgba(15,23,42,0.96)",
+                            borderColor: "rgba(148,163,184,0.18)",
+                            borderWidth: 1,
+                            callbacks: {
+                                title: (items) => {
+                                    const item = series[items[0].dataIndex];
+                                    const titleFormat = range === "month" || range === "week"
+                                        ? { month: "short", day: "numeric", year: "numeric" }
+                                        : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" };
+                                    return `${formatInTimezone(item.date, tzOffsetHours, titleFormat)} ${formatOffsetLabel(tzOffsetHours)} • ${item.moon.emoji} ${item.moon.phaseName}`;
+                                },
+                                afterBody: (items) => {
+                                    const item = series[items[0].dataIndex];
+                                    const retrogrades = item.signal.diagnostics.retrogradePlanets.length
+                                        ? `Retrogrades: ${item.signal.diagnostics.retrogradePlanets.join(", ")}`
+                                        : "Retrogrades: none";
+                                    const aspects = item.signal.diagnostics.moonAspects.length
+                                        ? `Moon aspects: ${item.signal.diagnostics.moonAspects.slice(0, 2).map((aspect) => `${aspect.type} ${aspect.planet}`).join(" • ")}`
+                                        : "Moon aspects: none";
+                                    const factors = item.signal.diagnostics.factorBreakdown
+                                        .filter((factor) => factor.value !== 0)
+                                        .slice(0, 3)
+                                        .map((factor) => `${factor.label} (${factor.value > 0 ? "+" : ""}${factor.value})`)
+                                        .join(" • ");
+                                    return [`Signal: ${item.signal.action}`, `Reason: ${item.signal.summary}`, `Factors: ${factors || "none"}`, retrogrades, aspects];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: "#94a3b8",
+                                maxRotation: range === "month" || range === "week" ? 45 : 0,
+                                minRotation: range === "month" || range === "week" ? 45 : 0,
+                                autoSkip: true,
+                                maxTicksLimit: range === "second" ? 8 : 12
+                            },
+                            grid: {
+                                color: "rgba(148,163,184,0.08)"
+                            }
+                        },
+                        signal: {
+                            min: -100,
+                            max: 100,
+                            ticks: {
+                                color: "#94a3b8",
+                                callback: (value) => {
+                                    if (value === 100) return "BUY";
+                                    if (value === 0) return "WAIT";
+                                    if (value === -100) return "SELL";
+                                    return "";
+                                }
+                            },
+                            grid: {
+                                color: "rgba(148,163,184,0.08)"
+                            }
+                        },
+                        illumination: {
+                            position: "right",
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                color: "#93c5fd",
+                                callback: (value) => `${value}%`
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAll() {
+            const tzOffsetHours = getTimezoneOffsetHours();
+            const range = getSelectedRange();
+            const anchorDate = getSelectedAnchorDate();
+            const moon = moonPhase(anchorDate, tzOffsetHours);
+            const signal = evaluateSignal(anchorDate, tzOffsetHours);
+            const series = generateTimeSeries(anchorDate, range, tzOffsetHours);
+            const rangeConfig = getRangeConfig(range);
+
+            applySignalToBlock("home", moon, signal);
+            applySignalToBlock("live", moon, signal);
+            document.getElementById("live-signal-phase").textContent = moon.phaseName;
+            document.querySelector("#live-section h2").textContent = `${rangeConfig.title}: moon phase + buy/sell signal`;
+            createMainChart(series, range, tzOffsetHours);
+        }
+
+        function primeDefaults() {
+            const datePicker = document.getElementById("date-picker");
+            datePicker.min = "1000-01-01";
+            datePicker.max = "3000-12-31";
+            datePicker.value = formatInputDate(new Date());
+        }
+
+        window.addEventListener("load", () => {
+            primeDefaults();
+            updateAll();
+            navigateTo("home");
+        });
+    </script>
+</body>
+</html>
